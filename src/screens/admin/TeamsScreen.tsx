@@ -31,10 +31,14 @@ export const TeamsScreen = () => {
       const { data: clubData, error: clubError } = await supabase
         .from('clubs')
         .select('id')
-        .eq('admin_id', user?.id)
-        .single();
+        .eq('admin_id', user?.id);
 
       if (clubError) throw clubError;
+
+      if (!clubData || clubData.length === 0) {
+        setTeams([]);
+        return;
+      }
 
       // Get teams
       const { data: teamsData, error: teamsError } = await supabase
@@ -44,14 +48,14 @@ export const TeamsScreen = () => {
           coaches:coach_id(name, phone),
           players:players(count)
         `)
-        .eq('club_id', clubData.id);
+        .eq('club_id', clubData[0].id);
 
       if (teamsError) throw teamsError;
 
       setTeams(teamsData || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching teams:', error);
-      Alert.alert('Error', 'Failed to fetch teams');
+      Alert.alert('Error', error.message || 'Failed to fetch teams');
     } finally {
       setLoading(false);
     }

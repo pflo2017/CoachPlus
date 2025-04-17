@@ -1,21 +1,35 @@
-module.exports = {
+export default {
   name: 'CoachPlus',
-  slug: 'coach-plus',
+  slug: 'coachplus',
   version: '1.0.0',
   orientation: 'portrait',
+  icon: './assets/icon.png',
   userInterfaceStyle: 'light',
+  splash: {
+    image: './assets/splash.png',
+    resizeMode: 'contain',
+    backgroundColor: '#ffffff'
+  },
   assetBundlePatterns: [
     '**/*'
   ],
   ios: {
     supportsTablet: true,
-    bundleIdentifier: 'com.coachplus.app'
+    bundleIdentifier: 'com.p.florin.CoachPlus'
   },
   android: {
-    package: 'com.coachplus.app'
+    adaptiveIcon: {
+      foregroundImage: './assets/adaptive-icon.png',
+      backgroundColor: '#ffffff'
+    },
+    package: 'com.p.florin.CoachPlus'
+  },
+  web: {
+    favicon: './assets/favicon.png'
   },
   plugins: [
-    'expo-image-picker'
+    'expo-font',
+    'expo-splash-screen'
   ],
   extra: {
     supabaseUrl: process.env.SUPABASE_URL || 'https://qblpvbfljkflzxkvkhnm.supabase.co',

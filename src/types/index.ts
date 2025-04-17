@@ -2,44 +2,46 @@ export type UserRole = 'admin' | 'coach' | 'parent';
 
 export interface User {
   id: string;
-  email?: string;
-  phone?: string;
-  name: string;
+  email: string;
   role: UserRole;
-  profilePicture?: string;
+  first_name: string;
+  last_name: string;
+  profile_picture_url?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Club {
   id: string;
   name: string;
-  location: string;
-  logo?: string;
-  adminId: string;
+  description?: string;
+  logo_url?: string;
+  admin_id: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Team {
   id: string;
   name: string;
-  access_code: string;
+  description?: string;
   club_id: string;
-  coach_id?: string;
-  coaches?: {
-    name: string;
-    phone: string;
-  };
-  players?: {
-    count: number;
-  }[];
+  coach_id: string;
+  access_code: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Player {
   id: string;
-  name: string;
-  birthDate: string;
-  profilePicture?: string;
-  medicalVisa: boolean;
-  teamId: string;
-  parentId: string;
+  first_name: string;
+  last_name: string;
+  date_of_birth: string;
+  team_id: string;
+  parent_id: string;
+  profile_picture_url?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Parent {
@@ -60,30 +62,92 @@ export interface Coach {
 export interface Event {
   id: string;
   title: string;
-  type: 'training' | 'match' | 'tournament' | 'other';
-  date: string;
-  time: string;
+  description: string;
+  start_date: string;
+  end_date: string;
   location: string;
-  teamId: string;
-  recurring?: boolean;
-  additionalInfo?: string;
+  team_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventResponse {
+  id: string;
+  event_id: string;
+  player_id: string;
+  response: 'yes' | 'no' | 'maybe';
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Announcement {
   id: string;
   title: string;
   content: string;
-  teamId: string;
-  authorId: string;
-  createdAt: string;
-  isPinned: boolean;
+  team_id: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Payment {
   id: string;
-  playerId: string;
-  month: string;
-  year: string;
-  status: 'paid' | 'pending' | 'overdue';
   amount: number;
-} 
+  description: string;
+  status: 'pending' | 'completed' | 'failed';
+  player_id: string;
+  parent_id: string;
+  team_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// API Response Types
+export interface ApiResponse<T> {
+  data: T | null;
+  error: Error | null;
+}
+
+// Navigation Params
+export type RootStackParamList = {
+  Welcome: undefined;
+  Login: { role: UserRole };
+  Register: { role: UserRole };
+};
+
+export type AdminTabParamList = {
+  Dashboard: undefined;
+  Teams: undefined;
+  TeamDetails: { teamId: string };
+  Players: undefined;
+  PlayerDetails: { playerId: string };
+  Payments: undefined;
+  Events: undefined;
+  EventDetails: { eventId: string };
+  Announcements: undefined;
+  Settings: undefined;
+};
+
+export type CoachTabParamList = {
+  Dashboard: undefined;
+  Teams: undefined;
+  TeamDetails: { teamId: string };
+  Players: undefined;
+  PlayerDetails: { playerId: string };
+  Events: undefined;
+  EventDetails: { eventId: string };
+  Announcements: undefined;
+  Chat: undefined;
+};
+
+export type ParentTabParamList = {
+  Dashboard: undefined;
+  Children: undefined;
+  ChildDetails: { childId: string };
+  TeamInfo: { teamId: string };
+  Payments: undefined;
+  Events: undefined;
+  EventDetails: { eventId: string };
+  Announcements: undefined;
+  Chat: undefined;
+}; 

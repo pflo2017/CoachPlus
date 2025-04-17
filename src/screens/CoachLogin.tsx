@@ -8,45 +8,62 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RouteProp } from '@react-navigation/native';
-import { AuthStackParamList } from '../navigation/types';
+import { RootStackParamList } from '../navigation/types';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 
-type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
-type LoginScreenRouteProp = RouteProp<AuthStackParamList, 'Login'>;
+type CoachLoginNavigationProp = NativeStackNavigationProp<RootStackParamList, 'CoachLogin'>;
 
-export const LoginScreen = () => {
-  const navigation = useNavigation<LoginScreenNavigationProp>();
-  const route = useRoute<LoginScreenRouteProp>();
+export const CoachLoginScreen = () => {
+  const navigation = useNavigation<CoachLoginNavigationProp>();
   const { signIn } = useAuth();
   
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [accessCode, setAccessCode] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+    if (!accessCode.trim()) {
+      Alert.alert('Error', 'Please enter your access code');
       return;
     }
 
     setLoading(true);
     try {
-      const { error } = await signIn(email, password);
-      if (error) throw error;
+      // Find coach by access code
+      const { data: coachData, error: coachError } = await supabase
+        .from('coaches')
+        .select('*')
+        .eq('access_code', accessCode.toUpperCase())
+        .single();
+
+      if (coachError || !coachData) {
+        throw new Error('Invalid access code');
+      }
+
+      // Get coach's auth account
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', coachData.user_id)
+        .single();
+
+      if (userError || !userData) {
+        throw new Error('Coach account not found');
+      }
+
+      // Sign in using the coach's credentials
+      const { error: signInError } = await signIn(userData.email, accessCode);
+      if (signInError) throw signInError;
+
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      console.error('Login error:', error);
+      Alert.alert('Error', error.message || 'Failed to login. Please try again.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleRegister = () => {
-    navigation.navigate('Register', { role: route.params.role });
   };
 
   return (
@@ -58,27 +75,17 @@ export const LoginScreen = () => {
         <Ionicons name="arrow-back" size={24} color="#4a90e2" />
       </TouchableOpacity>
 
-      <Text style={styles.title}>Login</Text>
-      <Text style={styles.subtitle}>
-        Sign in as {route.params.role.charAt(0).toUpperCase() + route.params.role.slice(1)}
-      </Text>
+      <Text style={styles.title}>Coach Login</Text>
+      <Text style={styles.subtitle}>Enter your access code to continue</Text>
 
       <View style={styles.form}>
         <TextInput
           style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
+          placeholder="Access Code"
+          value={accessCode}
+          onChangeText={setAccessCode}
+          autoCapitalize="characters"
+          autoCorrect={false}
         />
 
         <TouchableOpacity
@@ -93,15 +100,9 @@ export const LoginScreen = () => {
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.registerButton}
-          onPress={handleRegister}
-          disabled={loading}
-        >
-          <Text style={styles.registerButtonText}>
-            Don't have an account? Register
-          </Text>
-        </TouchableOpacity>
+        <Text style={styles.helpText}>
+          Contact your club administrator if you don't have an access code
+        </Text>
       </View>
     </View>
   );
@@ -110,12 +111,11 @@ export const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
     backgroundColor: '#f5f5f5',
+    padding: 20,
   },
   backButton: {
     marginTop: 40,
-    marginBottom: 20,
     width: 40,
     height: 40,
     justifyContent: 'center',
@@ -141,25 +141,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderColor: '#ddd',
+    textAlign: 'center',
+    letterSpacing: 2,
   },
   loginButton: {
-    backgroundColor: '#4a90e2',
+    backgroundColor: '#50c878',
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
-    marginTop: 8,
   },
   loginButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
   },
-  registerButton: {
-    padding: 15,
-    alignItems: 'center',
-  },
-  registerButtonText: {
-    color: '#4a90e2',
-    fontSize: 16,
+  helpText: {
+    textAlign: 'center',
+    color: '#666',
+    fontSize: 14,
+    marginTop: 16,
   },
 }); 

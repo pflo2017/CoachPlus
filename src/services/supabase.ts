@@ -1,20 +1,22 @@
 import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
-import Constants from 'expo-constants';
+import { Database } from '../types/supabase';
 
-const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl;
-const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey;
+// Replace these with your Supabase project URL and anon key from:
+// Project Settings > API > Project API keys
+const supabaseUrl = 'https://qblpvbfljkflzxkvkhnm.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFibHB2YmZsamtmbHp4a3ZraG5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4MDU4MTksImV4cCI6MjA2MDM4MTgxOX0.uKg5kU-ni4UipnrA-1HMXXZWuAJPFVNv12jfFGVR7HE';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase configuration. Please check your app.config.js file.');
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    storage: AsyncStorage,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-  },
-}); 
+export const supabase = createClient<Database>(
+  supabaseUrl,
+  supabaseAnonKey,
+  {
+    auth: {
+      storage: AsyncStorage,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+    },
+  }
+); 

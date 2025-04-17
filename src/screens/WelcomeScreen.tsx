@@ -2,15 +2,25 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AuthStackParamList } from '../navigation/types';
+import { RootStackParamList } from '../navigation/types';
 
-type WelcomeScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Welcome'>;
+type WelcomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Welcome'>;
 
 export const WelcomeScreen = () => {
   const navigation = useNavigation<WelcomeScreenNavigationProp>();
 
   const handleRoleSelection = (role: 'admin' | 'coach' | 'parent') => {
-    navigation.navigate('Login', { role });
+    switch (role) {
+      case 'admin':
+        navigation.navigate('Login', { role });
+        break;
+      case 'coach':
+        navigation.navigate('CoachLogin');
+        break;
+      case 'parent':
+        navigation.navigate('ParentPhoneEntry');
+        break;
+    }
   };
 
   return (
@@ -24,6 +34,7 @@ export const WelcomeScreen = () => {
           onPress={() => handleRoleSelection('admin')}
         >
           <Text style={styles.buttonText}>I am a club administrator</Text>
+          <Text style={styles.buttonSubtext}>Login with email and password</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -31,6 +42,7 @@ export const WelcomeScreen = () => {
           onPress={() => handleRoleSelection('coach')}
         >
           <Text style={styles.buttonText}>I am a coach</Text>
+          <Text style={styles.buttonSubtext}>Login with access code</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -38,6 +50,7 @@ export const WelcomeScreen = () => {
           onPress={() => handleRoleSelection('parent')}
         >
           <Text style={styles.buttonText}>I am a parent</Text>
+          <Text style={styles.buttonSubtext}>Login with phone number</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -68,7 +81,7 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   button: {
-    padding: 15,
+    padding: 20,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
@@ -89,7 +102,12 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
+    marginBottom: 4,
+  },
+  buttonSubtext: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 14,
   },
 }); 

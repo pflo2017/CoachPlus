@@ -17,21 +17,14 @@
     "@supabase/supabase-js": "^2.39.3",
     "expo": "~50.0.6",
     "expo-constants": "~15.4.5",
-    "expo-file-system": "~16.0.9",
-    "expo-font": "~11.10.3",
-    "expo-image-manipulator": "~11.8.0",
     "expo-image-picker": "~14.7.1",
-    "expo-splash-screen": "~0.26.5",
     "expo-status-bar": "~1.11.1",
-    "graphql": "^15.8.0",
-    "graphql-tag": "^2.12.6",
     "react": "18.2.0",
     "react-native": "0.73.6",
     "react-native-elements": "^3.4.3",
     "react-native-safe-area-context": "4.8.2",
     "react-native-screens": "~3.29.0",
-    "react-native-url-polyfill": "^2.0.0",
-    "unicode-match-property-value-ecmascript": "^2.2.0"
+    "react-native-url-polyfill": "^2.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
