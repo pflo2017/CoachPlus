@@ -113,6 +113,15 @@ export type RootStackParamList = {
   Welcome: undefined;
   Login: { role: UserRole };
   Register: { role: UserRole };
+  CoachLogin: undefined;
+  ParentPhoneEntry: undefined;
+  ParentTeamCode: { phone: string };
+  ParentSetup: { phone: string; teamCode: string };
+  ParentPassword: { phone: string; teamCode: string };
+  AdminTabs: undefined;
+  CoachTabs: undefined;
+  ParentTabs: undefined;
+  Settings: undefined;
 };
 
 export type AdminTabParamList = {
@@ -125,7 +134,6 @@ export type AdminTabParamList = {
   Events: undefined;
   EventDetails: { eventId: string };
   Announcements: undefined;
-  Settings: undefined;
 };
 
 export type CoachTabParamList = {

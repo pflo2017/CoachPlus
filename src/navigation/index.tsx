@@ -17,16 +17,20 @@ import { ParentSetupScreen } from '../screens/ParentSetup';
 import { ParentPasswordScreen } from '../screens/ParentPassword';
 
 // Admin Screens
-import { DashboardScreen } from '../screens/admin/DashboardScreen';
+import DashboardScreen from '../screens/admin/DashboardScreen';
 import { TeamsScreen } from '../screens/admin/TeamsScreen';
-import { TeamDetailsScreen } from '../screens/admin/TeamDetailsScreen';
 import { PlayersScreen } from '../screens/admin/PlayersScreen';
-import { PlayerDetailsScreen } from '../screens/admin/PlayerDetailsScreen';
 import { PaymentsScreen } from '../screens/admin/PaymentsScreen';
 import { EventsScreen } from '../screens/admin/EventsScreen';
 import { EventDetailsScreen } from '../screens/admin/EventDetailsScreen';
 import { AnnouncementsScreen } from '../screens/admin/AnnouncementsScreen';
 import { SettingsScreen } from '../screens/admin/SettingsScreen';
+import { ClubInformationScreen } from '../screens/admin/ClubInformationScreen';
+import { AdminProfileScreen } from '../screens/admin/AdminProfileScreen';
+import { SecurityScreen } from '../screens/admin/SecurityScreen';
+
+// Settings Screens
+import { ProfileInformationScreen } from '../screens/ProfileInformationScreen';
 
 // Coach Screens
 import { CoachDashboardScreen } from '../screens/coach/DashboardScreen';
@@ -59,7 +63,7 @@ const AdminTabNavigator = () => (
   <AdminTab.Navigator
     screenOptions={({ route }) => ({
       tabBarIcon: ({ focused, color, size }) => {
-        let iconName;
+        let iconName: keyof typeof Ionicons.glyphMap = 'alert';
         switch (route.name) {
           case 'Dashboard':
             iconName = focused ? 'home' : 'home-outline';
@@ -79,11 +83,6 @@ const AdminTabNavigator = () => (
           case 'Announcements':
             iconName = focused ? 'megaphone' : 'megaphone-outline';
             break;
-          case 'Settings':
-            iconName = focused ? 'settings' : 'settings-outline';
-            break;
-          default:
-            iconName = 'alert';
         }
         return <Ionicons name={iconName} size={size} color={color} />;
       },
@@ -95,7 +94,6 @@ const AdminTabNavigator = () => (
     <AdminTab.Screen name="Payments" component={PaymentsScreen} />
     <AdminTab.Screen name="Events" component={EventsScreen} />
     <AdminTab.Screen name="Announcements" component={AnnouncementsScreen} />
-    <AdminTab.Screen name="Settings" component={SettingsScreen} />
   </AdminTab.Navigator>
 );
 
@@ -103,7 +101,7 @@ const CoachTabNavigator = () => (
   <CoachTab.Navigator
     screenOptions={({ route }) => ({
       tabBarIcon: ({ focused, color, size }) => {
-        let iconName;
+        let iconName: keyof typeof Ionicons.glyphMap = 'alert';
         switch (route.name) {
           case 'Dashboard':
             iconName = focused ? 'home' : 'home-outline';
@@ -123,8 +121,6 @@ const CoachTabNavigator = () => (
           case 'Chat':
             iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
             break;
-          default:
-            iconName = 'alert';
         }
         return <Ionicons name={iconName} size={size} color={color} />;
       },
@@ -143,7 +139,7 @@ const ParentTabNavigator = () => (
   <ParentTab.Navigator
     screenOptions={({ route }) => ({
       tabBarIcon: ({ focused, color, size }) => {
-        let iconName;
+        let iconName: keyof typeof Ionicons.glyphMap = 'alert';
         switch (route.name) {
           case 'Dashboard':
             iconName = focused ? 'home' : 'home-outline';
@@ -163,8 +159,6 @@ const ParentTabNavigator = () => (
           case 'Chat':
             iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
             break;
-          default:
-            iconName = 'alert';
         }
         return <Ionicons name={iconName} size={size} color={color} />;
       },
@@ -200,7 +194,54 @@ export const Navigation = () => {
         // Role-based Stack
         <>
           {user.role === 'admin' && (
-            <Stack.Screen name="AdminTabs" component={AdminTabNavigator} />
+            <>
+              <Stack.Screen name="AdminTabs" component={AdminTabNavigator} />
+              <Stack.Screen 
+                name="Settings" 
+                component={SettingsScreen}
+                options={{
+                  headerShown: true,
+                  title: 'Profile Settings',
+                  headerBackTitle: 'Back'
+                }}
+              />
+              <Stack.Screen
+                name="ClubInformation"
+                component={ClubInformationScreen}
+                options={{
+                  headerShown: true,
+                  title: 'Club Information',
+                  headerBackTitle: 'Back'
+                }}
+              />
+              <Stack.Screen
+                name="AdminProfile"
+                component={AdminProfileScreen}
+                options={{
+                  headerShown: true,
+                  title: 'Admin Profile',
+                  headerBackTitle: 'Back'
+                }}
+              />
+              <Stack.Screen
+                name="Security"
+                component={SecurityScreen}
+                options={{
+                  headerShown: true,
+                  title: 'Security',
+                  headerBackTitle: 'Back'
+                }}
+              />
+              <Stack.Screen
+                name="ProfileInformation"
+                component={ProfileInformationScreen}
+                options={{
+                  headerShown: true,
+                  title: 'Edit Profile',
+                  headerBackTitle: 'Back'
+                }}
+              />
+            </>
           )}
           {user.role === 'coach' && (
             <Stack.Screen name="CoachTabs" component={CoachTabNavigator} />

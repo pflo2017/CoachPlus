@@ -11,13 +11,13 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { AuthStackParamList } from '../navigation/types';
+import { RootStackParamList } from '../navigation/types';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 
-type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
-type LoginScreenRouteProp = RouteProp<AuthStackParamList, 'Login'>;
+type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
+type LoginScreenRouteProp = RouteProp<RootStackParamList, 'Login'>;
 
 export const LoginScreen = () => {
   const navigation = useNavigation<LoginScreenNavigationProp>();
@@ -27,6 +27,8 @@ export const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const userRole = route.params?.role || 'user';
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -46,7 +48,7 @@ export const LoginScreen = () => {
   };
 
   const handleRegister = () => {
-    navigation.navigate('Register', { role: route.params.role });
+    navigation.navigate('Register', { role: userRole });
   };
 
   return (
@@ -60,7 +62,7 @@ export const LoginScreen = () => {
 
       <Text style={styles.title}>Login</Text>
       <Text style={styles.subtitle}>
-        Sign in as {route.params.role.charAt(0).toUpperCase() + route.params.role.slice(1)}
+        Sign in as {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
       </Text>
 
       <View style={styles.form}>

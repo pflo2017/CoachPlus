@@ -13,6 +13,15 @@ export type RootStackParamList = {
   AdminTabs: undefined;
   CoachTabs: undefined;
   ParentTabs: undefined;
+  Settings: undefined;
+  ProfileInformation: undefined;
+  ChangePassword: undefined;
+  ClubInformation: undefined;
+  TeamManagement: undefined;
+  Notifications: undefined;
+  PrivacySettings: undefined;
+  AdminProfile: undefined;
+  Security: undefined;
 };
 
 export type AdminTabParamList = {

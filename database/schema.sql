@@ -116,4 +116,48 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Create triggers
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
-    FOR EACH ROW EXECUTE FUNCTION public.handle_new_user(); 
+    FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Create administrators table
+CREATE TABLE public.administrators (
+    id uuid REFERENCES auth.users(id) PRIMARY KEY,
+    full_name text NOT NULL,
+    email text UNIQUE NOT NULL,
+    phone text,
+    profile_image_url text,
+    notifications_enabled boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- Create clubs table
+CREATE TABLE public.clubs (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    admin_id uuid REFERENCES public.administrators(id) NOT NULL,
+    name text NOT NULL,
+    location text NOT NULL,
+    logo_url text,
+    description text,
+    website text,
+    contact_email text,
+    contact_phone text,
+    address text,
+    city text,
+    state text,
+    postal_code text,
+    country text DEFAULT 'United States',
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- Add RLS policies
+ALTER TABLE public.administrators ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.clubs ENABLE ROW LEVEL SECURITY;
+
+-- Administrators can only access their own data
+CREATE POLICY "Administrators can view and update their own data" ON public.administrators
+    FOR ALL USING (auth.uid() = id);
+
+-- Administrators can only access their own club
+CREATE POLICY "Administrators can view and update their own club" ON public.clubs
+    FOR ALL USING (auth.uid() = admin_id); 
