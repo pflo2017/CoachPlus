@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,15 @@ import {
   SafeAreaView,
   Dimensions,
   Modal,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../context/AuthContext';
 import { RootStackParamList } from '../../types';
+import { supabase } from '../../services/supabase';
+import { User } from '@supabase/supabase-js';
 
 type DashboardScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -26,6 +29,18 @@ type StatsCardProps = {
   newCount?: number;
   onPress?: () => void;
 };
+
+interface UserMetadata {
+  club_name?: string;
+  club_location?: string;
+}
+
+interface ClubInfo {
+  id: string;
+  name: string;
+  logo: string | null;
+  location: string;
+}
 
 const IconWrapper = ({ children }: { children: React.ReactNode }) => (
   <View style={styles.iconWrapper}>{children}</View>
@@ -75,6 +90,48 @@ export default function DashboardScreen() {
   const navigation = useNavigation<DashboardScreenNavigationProp>();
   const { user, signOut } = useAuth();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [clubInfo, setClubInfo] = useState<ClubInfo>({ id: '', name: 'Your Club', logo: null, location: '' });
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadClubInfo();
+    }, [])
+  );
+
+  const loadClubInfo = async () => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user) return;
+
+      const { data: club, error } = await supabase
+        .from('clubs')
+        .select('id, name, logo, location')
+        .eq('admin_id', userData.user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching club:', error);
+        // If no club found, use club info from user metadata
+        setClubInfo({
+          id: userData.user.id,
+          name: userData.user.user_metadata.club_name || 'Your Club',
+          logo: null,
+          location: userData.user.user_metadata.club_location || ''
+        });
+        return;
+      }
+
+      // Use the club data
+      setClubInfo({
+        id: club.id,
+        name: club.name,
+        logo: club.logo,
+        location: club.location
+      });
+    } catch (error) {
+      console.error('Error in loadClubInfo:', error);
+    }
+  };
 
   const handleProfilePress = () => {
     setShowProfileMenu(true);
@@ -96,8 +153,20 @@ export default function DashboardScreen() {
       <ScrollView style={styles.scrollView} contentInsetAdjustmentBehavior="automatic">
         <View style={styles.header}>
           <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>TS</Text>
-            <Text style={styles.appName}>TeamSync</Text>
+            {clubInfo.logo ? (
+              <Image
+                source={{ uri: clubInfo.logo }}
+                style={styles.clubLogo}
+                resizeMode="contain"
+              />
+            ) : (
+              <View style={styles.placeholderLogo}>
+                <Text style={styles.placeholderLogoText}>
+                  {clubInfo.name.substring(0, 2).toUpperCase()}
+                </Text>
+              </View>
+            )}
+            <Text style={styles.appName}>{clubInfo.name}</Text>
           </View>
           <View style={styles.headerRight}>
             <TouchableOpacity style={styles.iconButton}>
@@ -476,5 +545,31 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     color: '#FF3B30',
+  },
+  clubLogo: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+    backgroundColor: '#f5f5f5',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  placeholderLogo: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#4a90e2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#3a80d2',
+  },
+  placeholderLogoText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 }); 

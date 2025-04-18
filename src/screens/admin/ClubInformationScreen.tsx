@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  Modal,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -16,9 +17,18 @@ import { RootStackParamList } from '../../navigation/types';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 
 type ClubInformationScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'ClubInformation'>;
+
+interface ClubInformation {
+  id: string;
+  name: string;
+  location: string;
+  logo: string | null;
+}
 
 export const ClubInformationScreen = () => {
   const navigation = useNavigation<ClubInformationScreenNavigationProp>();
@@ -26,9 +36,13 @@ export const ClubInformationScreen = () => {
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [clubName, setClubName] = useState('');
-  const [clubLocation, setClubLocation] = useState('');
-  const [clubLogo, setClubLogo] = useState<string | null>(null);
+  const [clubInfo, setClubInfo] = useState<ClubInformation>({
+    id: '',
+    name: '',
+    location: '',
+    logo: null
+  });
+  const [showImagePickerModal, setShowImagePickerModal] = useState(false);
 
   useEffect(() => {
     loadClubInformation();
@@ -36,60 +50,68 @@ export const ClubInformationScreen = () => {
 
   const loadClubInformation = async () => {
     try {
-      // First try to get existing club
-      const { data: existingClub, error: fetchError } = await supabase
-        .from('clubs')
-        .select('name, location, logo_url')
-        .eq('admin_id', user?.id)
-        .maybeSingle();
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user) return;
 
-      if (!existingClub) {
-        // No club found, create a new one
-        const { data: newClub, error: createError } = await supabase
+      const { data: club, error } = await supabase
+        .from('clubs')
+        .select('id, name, location, logo')
+        .eq('admin_id', userData.user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching club:', error);
+        // If no club found, create one with metadata
+        const { data: newClub, error: insertError } = await supabase
           .from('clubs')
-          .insert({
-            admin_id: user?.id,
-            name: '',
-            location: '',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
+          .insert([
+            {
+              admin_id: userData.user.id,
+              name: userData.user.user_metadata.club_name || '',
+              location: userData.user.user_metadata.club_location || '',
+              logo: null
+            }
+          ])
           .select()
           .single();
 
-        if (createError) throw createError;
+        if (insertError) {
+          console.error('Error creating club:', insertError);
+          return;
+        }
 
-        if (newClub) {
-          setClubName(newClub.name || '');
-          setClubLocation(newClub.location || '');
-          setClubLogo(null);
-        }
-      } else {
-        // Club found, set the values
-        setClubName(existingClub.name);
-        setClubLocation(existingClub.location);
-        if (existingClub.logo_url) {
-          setClubLogo(existingClub.logo_url);
-        }
+        setClubInfo({
+          id: newClub.id,
+          name: newClub.name,
+          location: newClub.location,
+          logo: newClub.logo
+        });
+        return;
       }
-    } catch (error: any) {
-      console.error('Error loading club information:', error);
-      Alert.alert('Error', 'Failed to load club information. Please try again.');
+
+      setClubInfo({
+        id: club.id,
+        name: club.name,
+        location: club.location,
+        logo: club.logo
+      });
+    } catch (error) {
+      console.error('Error in loadClubInformation:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const pickImage = async () => {
+  const pickFromGallery = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.5,
+        quality: 0.7,
       });
 
-      if (!result.canceled) {
+      if (!result.canceled && result.assets[0]) {
         const fileSize = result.assets[0].fileSize;
         if (fileSize && fileSize > 2 * 1024 * 1024) {
           Alert.alert(
@@ -99,75 +121,81 @@ export const ClubInformationScreen = () => {
           );
           return;
         }
-        setClubLogo(result.assets[0].uri);
+        setClubInfo({ ...clubInfo, logo: result.assets[0].uri });
+        setShowImagePickerModal(false);
       }
     } catch (error) {
-      console.error('Error picking image:', error);
+      console.error('Error picking image from gallery:', error);
       Alert.alert('Error', 'Failed to pick image. Please try again.');
     }
   };
 
+  const pickFromFiles = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'image/*',
+        copyToCacheDirectory: true
+      });
+
+      if (result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const fileSize = asset.size;
+        if (fileSize && fileSize > 2 * 1024 * 1024) {
+          Alert.alert(
+            'Image too large',
+            'Please select an image smaller than 2MB',
+            [{ text: 'OK' }]
+          );
+          return;
+        }
+
+        const fileExt = asset.name?.split('.').pop()?.toLowerCase();
+        if (!['jpg', 'jpeg', 'png', 'gif'].includes(fileExt || '')) {
+          Alert.alert(
+            'Invalid file type',
+            'Please select a valid image file (JPG, JPEG, PNG, or GIF)',
+            [{ text: 'OK' }]
+          );
+          return;
+        }
+
+        setClubInfo({ ...clubInfo, logo: asset.uri });
+        setShowImagePickerModal(false);
+      }
+    } catch (error) {
+      console.error('Error picking file:', error);
+      Alert.alert('Error', 'Failed to pick file. Please try again.');
+    }
+  };
+
   const handleSave = async () => {
-    if (!clubName.trim()) {
+    if (!clubInfo.name.trim()) {
       Alert.alert('Error', 'Please enter your club name');
       return;
     }
 
-    if (!clubLocation.trim()) {
+    if (!clubInfo.location.trim()) {
       Alert.alert('Error', 'Please enter your club location');
       return;
     }
 
     setSaving(true);
     try {
-      let logo_url = clubLogo;
-      if (clubLogo && clubLogo.startsWith('file://')) {
-        try {
-          const response = await fetch(clubLogo);
-          const blob = await response.blob();
-          const fileName = `club-logo-${user?.id}-${Date.now()}.jpg`;
-
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('club-logos')
-            .upload(fileName, blob, {
-              contentType: 'image/jpeg',
-              upsert: true
-            });
-
-          if (uploadError) throw uploadError;
-
-          if (uploadData) {
-            const { data: { publicUrl } } = supabase.storage
-              .from('club-logos')
-              .getPublicUrl(uploadData.path);
-            
-            logo_url = publicUrl;
-          }
-        } catch (error) {
-          console.error('Error uploading club logo:', error);
-          Alert.alert('Error', 'Failed to upload club logo. Please try again.');
-          return;
-        }
-      }
-
-      const { error: updateError } = await supabase
+      const { error } = await supabase
         .from('clubs')
-        .upsert({
-          admin_id: user?.id,
-          name: clubName,
-          location: clubLocation,
-          logo_url,
-          updated_at: new Date().toISOString()
+        .update({
+          name: clubInfo.name,
+          location: clubInfo.location,
+          logo: clubInfo.logo
         })
-        .eq('admin_id', user?.id);
+        .eq('id', clubInfo.id);
 
-      if (updateError) throw updateError;
-
+      if (error) throw error;
       Alert.alert('Success', 'Club information updated successfully');
       navigation.goBack();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating club information:', error);
-      Alert.alert('Error', 'Failed to update club information. Please try again.');
+      Alert.alert('Error', 'Failed to update club information');
     } finally {
       setSaving(false);
     }
@@ -193,11 +221,11 @@ export const ClubInformationScreen = () => {
 
       <TouchableOpacity
         style={styles.logoContainer}
-        onPress={pickImage}
+        onPress={() => setShowImagePickerModal(true)}
       >
-        {clubLogo ? (
+        {clubInfo.logo ? (
           <Image
-            source={{ uri: clubLogo }}
+            source={{ uri: clubInfo.logo }}
             style={styles.clubLogo}
           />
         ) : (
@@ -208,13 +236,46 @@ export const ClubInformationScreen = () => {
         )}
       </TouchableOpacity>
 
+      <Modal
+        visible={showImagePickerModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowImagePickerModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Choose Image Source</Text>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={pickFromGallery}
+            >
+              <Ionicons name="images" size={24} color="#4a90e2" />
+              <Text style={styles.modalButtonText}>Photo Gallery</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={pickFromFiles}
+            >
+              <Ionicons name="folder" size={24} color="#4a90e2" />
+              <Text style={styles.modalButtonText}>Files</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={() => setShowImagePickerModal(false)}
+            >
+              <Text style={styles.modalCancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <View style={styles.form}>
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Club Name</Text>
           <TextInput
             style={styles.input}
-            value={clubName}
-            onChangeText={setClubName}
+            value={clubInfo.name}
+            onChangeText={(text) => setClubInfo({ ...clubInfo, name: text })}
             placeholder="Enter club name"
             autoCapitalize="words"
           />
@@ -224,8 +285,8 @@ export const ClubInformationScreen = () => {
           <Text style={styles.label}>Club Location (City)</Text>
           <TextInput
             style={styles.input}
-            value={clubLocation}
-            onChangeText={setClubLocation}
+            value={clubInfo.location}
+            onChangeText={(text) => setClubInfo({ ...clubInfo, location: text })}
             placeholder="Enter club location"
             autoCapitalize="words"
           />
@@ -282,24 +343,37 @@ const styles = StyleSheet.create({
   logoContainer: {
     alignSelf: 'center',
     marginVertical: 24,
-  },
-  clubLogo: {
     width: 120,
     height: 120,
+    borderRadius: 60,
+    backgroundColor: '#f5f5f5',
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+    borderStyle: 'dashed',
+    overflow: 'hidden',
+  },
+  clubLogo: {
+    width: '100%',
+    height: '100%',
     borderRadius: 60,
   },
   logoPlaceholder: {
-    width: 120,
-    height: 120,
+    width: '100%',
+    height: '100%',
     borderRadius: 60,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: '#f5f5f5',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#4a90e2',
+    borderStyle: 'dashed',
   },
   logoText: {
     marginTop: 8,
-    color: '#666',
+    color: '#4a90e2',
     fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   form: {
     padding: 20,
@@ -332,5 +406,48 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+    width: '80%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    borderRadius: 8,
+    backgroundColor: '#f5f5f5',
+    marginBottom: 10,
+  },
+  modalButtonText: {
+    marginLeft: 10,
+    fontSize: 16,
+    color: '#333',
+  },
+  modalCancelButton: {
+    marginTop: 10,
+    padding: 15,
+    borderRadius: 8,
+    backgroundColor: '#f5f5f5',
+    alignItems: 'center',
+  },
+  modalCancelButtonText: {
+    fontSize: 16,
+    color: '#666',
   },
 }); 

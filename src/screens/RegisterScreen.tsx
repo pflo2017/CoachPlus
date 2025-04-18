@@ -159,7 +159,9 @@ export const RegisterScreen = () => {
         options: {
           data: {
             role: route.params.role,
-            name: route.params.role === 'admin' ? adminName : email
+            name: route.params.role === 'admin' ? adminName : email,
+            club_name: route.params.role === 'admin' ? clubName : null,
+            club_location: route.params.role === 'admin' ? clubLocation : null
           }
         }
       });
